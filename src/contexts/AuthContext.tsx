@@ -13,7 +13,6 @@ interface AuthContextType {
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
-  userRoles: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,7 +21,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
-  const [userRoles, setUserRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -36,15 +34,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) throw error;
       setProfile(data);
-
-      // Fetch user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-      
-      if (rolesError) throw rolesError;
-      setUserRoles(rolesData?.map(r => r.role) || []);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -62,7 +51,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }, 0);
       } else {
         setProfile(null);
-        setUserRoles([]);
       }
     });
 
@@ -92,14 +80,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.success('Welcome back!');
       
       // Navigate based on role
-      const { data: rolesData } = await supabase
-        .from('user_roles')
+      const { data: profileData } = await supabase
+        .from('profiles')
         .select('role')
-        .eq('user_id', data.user.id);
+        .eq('id', data.user.id)
+        .single();
       
-      const roles = rolesData?.map(r => r.role) || [];
-      
-      if (roles.includes('admin')) {
+      if (profileData?.role === 'admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/levels');
@@ -138,7 +125,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await supabase.auth.signOut();
       setProfile(null);
-      setUserRoles([]);
       toast.success('Signed out successfully');
       navigate('/');
     } catch (error: any) {
@@ -146,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const isAdmin = userRoles.includes('admin');
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <AuthContext.Provider
@@ -159,7 +145,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signUp,
         signOut,
         isAdmin,
-        userRoles,
       }}
     >
       {children}
