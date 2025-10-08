@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       setProfile(data);
@@ -84,10 +84,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
       
       if (profileData?.role === 'admin') {
-        navigate('/admin/dashboard');
+        navigate('/admin');
       } else {
         navigate('/levels');
       }
